@@ -26,6 +26,14 @@ def response(status: int, body: str) -> requests.Response:
 
 
 class OpenWeatherClientTests(unittest.TestCase):
+    def test_malformed_location_is_converted_to_safe_error(self) -> None:
+        for body in ('[null]', '[42]', '[{"local_names":42}]', 'null'):
+            with self.subTest(body=body):
+                session = FakeSession([response(200, body)])
+                client = OpenWeatherClient("key", session=session)
+                with self.assertRaises(WeatherError):
+                    client.find_location("Москва")
+
     def test_find_location_prefers_russian_local_name(self) -> None:
         session = FakeSession(
             [

@@ -69,9 +69,12 @@ class OpenWeatherClient:
                 f"OpenWeather вернул ошибку (код {response.status_code})."
             )
         try:
-            return response.json()
+            data = response.json()
         except (requests.JSONDecodeError, ValueError) as error:
             raise WeatherError("OpenWeather вернул некорректный ответ.") from error
+        if not isinstance(data, (dict, list)):
+            raise WeatherError("OpenWeather вернул некорректный ответ.")
+        return data
 
     def find_location(self, city: str) -> Location:
         query = " ".join(city.split())
@@ -126,7 +129,7 @@ class OpenWeatherClient:
                 sunrise=_optional_int(system.get("sunrise")),
                 sunset=_optional_int(system.get("sunset")),
             )
-        except (KeyError, IndexError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise WeatherError("В ответе OpenWeather не хватает данных о погоде.") from error
 
     def forecast(self, location: Location) -> Forecast:
@@ -140,7 +143,7 @@ class OpenWeatherClient:
         try:
             points = tuple(self._parse_forecast_point(item) for item in data["list"])
             timezone_offset = int(data.get("city", {}).get("timezone", 0))
-        except (KeyError, IndexError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise WeatherError("В ответе OpenWeather не хватает данных прогноза.") from error
         if not points:
             raise WeatherError("OpenWeather вернул пустой прогноз.")
@@ -160,7 +163,7 @@ class OpenWeatherClient:
                 pm2_5=_optional_float(components.get("pm2_5")),
                 pm10=_optional_float(components.get("pm10")),
             )
-        except (KeyError, IndexError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise WeatherError("В ответе OpenWeather не хватает данных о воздухе.") from error
 
     @staticmethod
@@ -175,7 +178,7 @@ class OpenWeatherClient:
                 latitude=float(item["lat"]),
                 longitude=float(item["lon"]),
             )
-        except (KeyError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, TypeError, ValueError) as error:
             raise WeatherError("OpenWeather вернул некорректные координаты.") from error
 
     @staticmethod
